@@ -121,6 +121,10 @@ input {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.user-chip--role {
+  min-width: 130px;
+}
+
 .shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -261,6 +265,10 @@ input {
   color: #d9e3eb;
 }
 
+.spotlight-card__meta {
+  color: var(--muted);
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -275,6 +283,18 @@ input {
   padding: 22px;
   border-radius: 24px;
   background: var(--panel);
+}
+
+.metric-card--success {
+  border-color: rgba(114, 204, 196, 0.2);
+}
+
+.metric-card--warning {
+  border-color: rgba(255, 180, 92, 0.28);
+}
+
+.metric-card--danger {
+  border-color: rgba(255, 141, 122, 0.24);
 }
 
 .metric-card strong {
@@ -335,6 +355,35 @@ input {
   margin: 0;
   font-weight: 700;
   color: var(--accent-strong);
+}
+
+.invoice-row__meta {
+  color: var(--muted);
+}
+
+.panel--feedback {
+  display: grid;
+  gap: 8px;
+  min-height: 100%;
+}
+
+.panel--feedback p,
+.panel-state span {
+  margin: 0;
+  color: var(--muted);
+}
+
+.panel--danger,
+.panel-state--danger strong {
+  color: var(--danger);
+}
+
+.panel-state {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .accent-panel {
@@ -479,6 +528,11 @@ input {
 .form-error {
   margin: 0;
   color: var(--danger);
+}
+
+.form-success {
+  margin: 0;
+  color: var(--mint);
 }
 
 .login-footer {

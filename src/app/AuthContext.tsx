@@ -3,10 +3,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { apiRequest, ApiError } from "@/lib/api";
+import { apiRequest, getApiErrorMessage, subscribeToUnauthorized } from "@/lib/api";
+import { hasAdminPermission, type AdminPermission } from "@/lib/adminPermissions";
 import { clearStoredAuth, readStoredAuth, writeStoredAuth } from "@/lib/authStorage";
 
 export type AuthUser = {
@@ -35,9 +37,12 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   token: string | null;
   user: AuthUser | null;
+  authNotice: string | null;
+  can: (permission: AdminPermission) => boolean;
   login: (input: LoginInput) => Promise<{ ok: boolean; message?: string }>;
   logout: () => void;
   refreshSession: () => Promise<void>;
+  clearAuthNotice: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,9 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const isLoggingOutRef = useRef(false);
 
   useEffect(() => {
     void bootstrapSession();
+  }, []);
+
+  useEffect(() => {
+    return subscribeToUnauthorized(() => {
+      if (isLoggingOutRef.current) {
+        return;
+      }
+
+      clearStoredAuth();
+      setToken(null);
+      setUser(null);
+      setAuthNotice("Tu sesion vencio. Ingresa nuevamente para continuar.");
+    });
   }, []);
 
   async function bootstrapSession() {
@@ -66,10 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setToken(storedAuth.token);
       setUser(adminUser);
+      setAuthNotice(null);
     } catch {
       clearStoredAuth();
       setToken(null);
       setUser(null);
+      setAuthNotice("Tu sesion vencio. Ingresa nuevamente para continuar.");
     } finally {
       setIsBootstrapping(false);
     }
@@ -81,6 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: user !== null,
       token,
       user,
+      authNotice,
+      can(permission) {
+        return hasAdminPermission(user?.role, permission);
+      },
       async login({ email, password, remember }) {
         if (!email || !password) {
           return {
@@ -100,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setToken(response.token);
           setUser(response.adminUser);
+          setAuthNotice(null);
           writeStoredAuth({
             token: response.token,
             remember,
@@ -107,30 +134,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           return { ok: true };
         } catch (error) {
-          if (error instanceof ApiError) {
-            return {
-              ok: false,
-              message: error.message,
-            };
-          }
-
           return {
             ok: false,
-            message: "No se pudo iniciar sesion.",
+            message: getApiErrorMessage(error, "No se pudo iniciar sesion."),
           };
         }
       },
       logout() {
+        isLoggingOutRef.current = true;
+
         if (token) {
           void apiRequest("/admin/auth/logout", {
             method: "POST",
             token,
+            skipAuthHandling: true,
           }).catch(() => null);
         }
 
         clearStoredAuth();
         setToken(null);
         setUser(null);
+        setAuthNotice("Cerraste sesion correctamente.");
+        isLoggingOutRef.current = false;
       },
       async refreshSession() {
         if (!token) {
@@ -140,16 +165,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const adminUser = await apiRequest<AuthUser>("/admin/me", { token });
           setUser(adminUser);
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 401) {
-            clearStoredAuth();
-            setToken(null);
-            setUser(null);
-          }
+        } catch {
+          return;
         }
       },
+      clearAuthNotice() {
+        setAuthNotice(null);
+      },
     }),
-    [isBootstrapping, token, user],
+    [authNotice, isBootstrapping, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -11,7 +11,7 @@ type LocationState = {
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isBootstrapping, login } = useAuth();
+  const { authNotice, clearAuthNotice, isAuthenticated, isBootstrapping, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -33,6 +33,7 @@ export function LoginPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
+    clearAuthNotice();
 
     const result = await login({ email, password, remember });
 
@@ -112,6 +113,7 @@ export function LoginPage() {
             </label>
 
             {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+            {!errorMessage && authNotice ? <p className="form-success">{authNotice}</p> : null}
 
             <button type="submit" className="primary-button primary-button--full" disabled={isSubmitting}>
               {isSubmitting ? "Ingresando..." : "Entrar al panel"}

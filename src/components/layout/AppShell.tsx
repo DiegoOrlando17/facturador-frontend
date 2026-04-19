@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/app/AuthContext";
+import { getAdminRoleLabel } from "@/lib/adminPermissions";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { logout, user } = useAuth();
@@ -20,6 +21,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="user-chip">
             <span>{user?.role ?? "ADMIN"}</span>
             <small>{user?.email}</small>
+          </div>
+          <div className="user-chip user-chip--role">
+            <span>Nivel</span>
+            <small>{getAdminRoleLabel(user?.role)}</small>
           </div>
           <button type="button" className="secondary-button" onClick={logout}>
             Cerrar sesion
